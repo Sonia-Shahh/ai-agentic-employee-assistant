@@ -10,10 +10,8 @@ Employee AI Assistant is an asynchronous retrieval-augmented generation pipeline
    ```
 
 2. **Ensure pip is up to date**
-
     ```python -m pip install --upgrade pip
     ```
-
 3. **Install ffmpeg + ffprobe (required for audio chunking)**
     Download the Windows build from https://ffmpeg.org/download.html and add the bin folder to your system PATH, then verify:
 
@@ -24,7 +22,7 @@ Employee AI Assistant is an asynchronous retrieval-augmented generation pipeline
 4. **Clone this repository**
 
     ```
-    git clone https://github.com/your-org/ragbot.git
+    git clone https://github.com/ai-agentic-employee-assistant.git
     cd ragbot
     ```
 
@@ -44,20 +42,19 @@ Employee AI Assistant is an asynchronous retrieval-augmented generation pipeline
 
 ## 3. **Configure Qdrant Cloud and Environment Variables**
 
-1. Create a free Qdrant Cloud cluster at https://qdrant.io/cloud
+1. ** Create a free Qdrant Cloud cluster at https://qdrant.io/cloud **
 
     Obtain the cluster URL (e.g., https://your-cluster-name-xxxx.a.qdrant.io) and API key.
 
-2. Create a .env file in the repository root
-
+2. ** Create a .env file in the repository root **
+   ```
     OPENAI_API_KEY=sk-your-openai-key
     QDRANT_URL=https://your-cluster-name-xxxx.a.qdrant.io
     QDRANT_API_KEY=your-qdrant-api-key
     QDRANT_COLLECTION=ragbot-collection
     SERPAPI_API_KEY=your-serpapi-key
     LOGFIRE_TOKEN=your-logfire-token
-
-
+   ```
     The application automatically loads .env through python-dotenv during startup.
 
 ## 4. Data Preparation and Directory Layout
