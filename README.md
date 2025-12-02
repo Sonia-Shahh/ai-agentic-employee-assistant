@@ -1,76 +1,62 @@
-# RAGBot
+# Employee AI Assistant (RAGBot)
 
-RAGBot is an asynchronous retrieval-augmented generation pipeline for ingesting PDFs and audio, storing embeddings in Qdrant, and answering questions with GPT 5.1-mini plus Whisper-based transcription. It now uses a **Pydantic AI agent** with pluggable tools (`vector_search`, `web_search` via SerpAPI) and post-turn **LLM-as-a-Judge** scoring powered by `pydantic-evals`. This README walks through environment setup, data ingestion, interactive querying, and the engineering decisions behind the system.
+Employee AI Assistant is an asynchronous retrieval-augmented generation pipeline for ingesting PDFs and audio, storing embeddings in Qdrant, and answering questions with GPT 5.1-mini plus Whisper-based transcription. It now uses a Pydantic AI agent with pluggable tools (vector_search, web_search via SerpAPI) and post-turn LLM-as-a-Judge scoring powered by pydantic-evals. This README walks through environment setup, data ingestion, interactive querying, and the engineering decisions behind the system.
 
 ## 1. Prerequisites
 
 1. **Install Python 3.11+**
-   ```bash
-   sudo apt update
-   sudo apt install -y python3 python3-venv python3-pip
-   python3 --version  # confirm >= 3.11
-   ```
+   ```powershell
+   python --version  # confirm >= 3.11
+
 2. **Ensure pip is up to date**
-   ```bash
-   python3 -m pip install --upgrade pip
-   ```
-3. **Install `uv` (fast Python package manager from Astral)**
-   Preferred (standalone installer):
-   ```bash
-   curl -LsSf https://astral.sh/uv/install.sh | sh
-   exec "$SHELL" -l  # reload PATH so that `uv` is available
-   uv --version
-   ```
-   Alternative (via pip):
-   ```bash
-   python3 -m pip install --upgrade pip  # ensure pip is current
-   python3 -m pip install uv
-   uv --version
-   ```
-4. **Install ffmpeg + ffprobe (required for audio chunking)**
-   ```bash
-   sudo apt install -y ffmpeg
-   ffmpeg -version
-   ```
-5. **Clone this repository**
-   ```bash
-   git clone https://github.com/your-org/ragbot.git
-   cd ragbot
-   ```
 
-## 2. Environment Setup with `uv`
+    ```python -m pip install --upgrade pip
 
-1. **Initialize the virtual environment (creates `.venv/`)**
-   ```bash
-    uv init
-   ```
-2. **Install project dependencies from `pyproject.toml` and `uv.lock`**
-   ```bash
-   uv sync --python 3.11
-   ```
-   This installs OpenAI, qdrant-client, PyPDF, Tiktoken, python-dotenv, and other toolchain requirements into the managed environment.
-3. **Activate the environment for manual work (optional; `uv run` auto-activates)**
-   ```bash
-   source .venv/bin/activate
-   ```
+3. **Install ffmpeg + ffprobe (required for audio chunking)**
+    Download the Windows build from https://ffmpeg.org/download.html and add the bin folder to your system PATH, then verify:
 
-## 3. Configure Qdrant and Environment Variables
+    ```ffmpeg -version
+       ffprobe -version
+       ```
 
-1. **Install the official Qdrant Docker image (pull) and run it**
-   ```bash
-   docker pull qdrant/qdrant:latest
-   docker run --rm -p 6333:6333 -p 6334:6334 qdrant/qdrant:latest
-   ```
-   Port 6333 serves the REST API used by this project.
-2. **Create a `.env` file in the repository root**
-   ```env
-   OPENAI_API_KEY=sk-your-openai-key
-   QDRANT_URL=http://localhost:6333
-   QDRANT_COLLECTION=ragbot-collection
-   SERPAPI_API_KEY=your-serpapi-key
-   LOGFIRE_TOKEN=your-logfire-token
-   ```
-   The application automatically loads `.env` through `python-dotenv` during startup.
+4. **Clone this repository**
+
+    ```
+    git clone https://github.com/your-org/ragbot.git
+    cd ragbot
+    ```
+
+## 2. Environment Setup in VS Code Terminal
+
+1. **Create and activate a virtual environment**
+
+    ```python -m venv .venv
+        .venv\Scripts\activate
+    ```
+
+## 2. **Install project dependencies**
+
+    ``` pip install -r requirements.txt 
+    ```
+       This installs OpenAI, qdrant-client, PyPDF, Tiktoken, python-dotenv, and other toolchain requirements.
+
+## 3. **Configure Qdrant Cloud and Environment Variables**
+
+1. Create a free Qdrant Cloud cluster at https://qdrant.io/cloud
+
+    Obtain the cluster URL (e.g., https://your-cluster-name-xxxx.a.qdrant.io) and API key.
+
+2. Create a .env file in the repository root
+
+    OPENAI_API_KEY=sk-your-openai-key
+    QDRANT_URL=https://your-cluster-name-xxxx.a.qdrant.io
+    QDRANT_API_KEY=your-qdrant-api-key
+    QDRANT_COLLECTION=ragbot-collection
+    SERPAPI_API_KEY=your-serpapi-key
+    LOGFIRE_TOKEN=your-logfire-token
+
+
+    The application automatically loads .env through python-dotenv during startup.
 
 ## 4. Data Preparation and Directory Layout
 
@@ -81,44 +67,40 @@ ragbot/
 │   └── audio/      # place audio/video files here
 ├── scripts/        # CLI entry points
 └── src/            # library code
+
 ```
 
-Populate `data/pdf` with files such as `Databases_for_GenAI.pdf` and `data/audio` with matching MP3/MP4/WAV assets.
+Populate 'data/pdf' with files such as 'Databases_for_GenAI.pdf' and 'data/audio' with matching MP3/MP4/WAV assets.
 
 ## 5. Run the Ingestion Pipeline
 
 Ingest all PDFs and audio into the configured Qdrant collection:
 
-```bash
-PYTHONPATH=$PWD uv run python -m scripts.run_ingestion \
-  --pdf-dir data/pdf \
-  --audio-dir data/audio \
-  --collection ragbot-collection
 ```
+python -m scripts.run_ingestion --pdf-dir data/pdf --audio-dir data/audio --collection ragbot-collection
+```
+
 
 The ingestion script:
 
 - Reads PDFs asynchronously via PyPDF.
-- Transcribes every audio file using Whisper. Long recordings are automatically split into overlapping chunks (default 1,300 seconds length with 10-second overlap) using ffmpeg and ffprobe before being sent to the OpenAI API.
-- Normalizes and tokenizes text, produces embeddings through `text-embedding-3-small`, ensures the Qdrant collection exists, and upserts chunk metadata with unique UUID identifiers.
+- Transcribes every audio file using Whisper. Long recordings are automatically split into overlapping chunks using ffmpeg and ffprobe before being sent to the OpenAI API.
+-Normalizes and tokenizes text, produces embeddings through text-embedding-3-small, ensures the Qdrant collection exists, and upserts chunk metadata with unique UUID identifiers.
 
 ## 6. Ask Questions Interactively
 
 Launch the sequential chat loop, which maintains the full conversation history during a session:
 
-```bash
-PYTHONPATH=$PWD uv run python -m scripts.ask_questions \
-  --collection ragbot-collection \
-  --limit 5 \
-  --interactive
+```
+    python -m scripts.ask_questions --collection ragbot-collection --limit 5 --interactive
 ```
 
-- Enter each user turn at the `You:` prompt.
-- Hit Enter on a blank line to exit.
-- Runtime prints:
-  - `[answer] …` the model response
-  - `[metrics] running evals...`
-  - `[metrics] {...}` containing LLM-judge scores
+    - Enter each user turn at the You: prompt.
+    - Hit Enter on a blank line to exit.
+    - Runtime prints:
+        - [answer] … the model response
+        - [metrics] running evals...
+        - [metrics] {...} containing LLM-judge scores
 
 ## 7. Engineering Walkthrough
 
