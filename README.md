@@ -7,10 +7,12 @@ Employee AI Assistant is an asynchronous retrieval-augmented generation pipeline
 1. **Install Python 3.11+**
    ```powershell
    python --version  # confirm >= 3.11
+   ```
 
 2. **Ensure pip is up to date**
 
     ```python -m pip install --upgrade pip
+    ```
 
 3. **Install ffmpeg + ffprobe (required for audio chunking)**
     Download the Windows build from https://ffmpeg.org/download.html and add the bin folder to your system PATH, then verify:
