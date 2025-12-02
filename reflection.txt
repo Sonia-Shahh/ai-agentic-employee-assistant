@@ -1,0 +1,3 @@
+Getting the long audio ingestion stable took more thought than I expected. OpenAI's request limits forced me to juggle ffmpeg, ffprobe, and AsyncOpenAI, and every failure path had to be bulletproof or the run collapsed halfway through. The hardest part was keeping chunk generation, temporary files, and retries aligned with asyncio without flooding the model with redundant uploads. Also since Python was a new tech stack, it took longer to debug errors. Ingestion of PDFs was relatively simpler. 
+
+Watching the whole thing glued together in Python and seeing the embeddings land in Qdrant was the payoff. Experiencing those vectors drive a real conversation loop was fascinating to watch.

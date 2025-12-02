@@ -1,0 +1,82 @@
+flowchart LR
+%% --- USER / INTERFACE ---
+subgraph USER [User / Interface]
+    CLI["CLI - scripts/ask_questions.py"]
+    WebUI["Web UI (optional)"]
+end
+
+%% --- ORCHESTRATION / SCRIPTS ---
+subgraph ORCH [Orchestration / Scripts]
+    RUN_ING["scripts/run_ingestion.py"]
+    ASK_Q["scripts/ask_questions.py"]
+end
+
+%% --- INGESTION LAYER ---
+subgraph ING [Ingestion Layer - src/data_loader]
+    AUDIO["audio_transcriber.py - Whisper + ffmpeg"]
+    PDF["pdf_loader.py - Async PDF Extraction"]
+end
+
+%% --- TEXT PROCESSING / CHUNKING ---
+subgraph CHUNK [Text Processing - src/text_processing]
+    CHUNKER["chunker.py - normalize + token-aware chunking"]
+end
+
+%% --- EMBEDDINGS / VECTOR STORE ---
+subgraph VEC [Embeddings & Vector Store]
+    EMB["openai_embeddings.py - async embeddings"]
+    QDR["qdrant_store.py - Qdrant storage & retrieval"]
+end
+
+%% --- RAG PIPELINE & AGENTS ---
+subgraph RAG [RAG Pipeline & LLM Agents - src/rag]
+    PIPE["pipeline.py - ingest orchestration"]
+    CHAT["chatbot.py - AgentRunner: retrieval + reasoning + self-reflection"]
+    REFLECT["Self-Reflection & Metrics Evaluation"]
+    TOOLS["Tool-Calling: vector_search, web_search, custom tools"]
+end
+
+%% --- EXTERNAL TOOLS ---
+subgraph EXT [External Tools / APIs]
+    WHISPER["Whisper API / local model"]
+    FFMPEG["ffmpeg / ffprobe"]
+    WEBAPI["Web Search / API"]
+end
+
+%% --- DEVOPS / DOCS ---
+subgraph DEVOPS [Repository & Documentation]
+    REPO["GitHub Repo"]
+    README["README.md"]
+    ARCHFILE["architecture.mmd"]
+end
+
+%% --- DATA FLOWS ---
+CLI -->|"Trigger ingestion"| RUN_ING
+CLI -->|"Ask question"| ASK_Q
+WebUI --> ASK_Q
+
+RUN_ING --> PDF
+RUN_ING --> AUDIO
+PDF --> CHUNKER
+AUDIO --> CHUNKER
+CHUNKER -->|"Text chunks"| EMB
+EMB -->|"Vectors"| QDR
+
+ASK_Q --> CHAT
+CHAT -->|"Retrieve embeddings"| QDR
+CHAT --> PIPE
+CHAT --> TOOLS
+TOOLS --> QDR
+TOOLS --> WEBAPI
+
+CHAT --> REFLECT
+REFLECT --> CHAT
+REFLECT -->|"Metrics & Evaluation"| PIPE
+
+%% --- EXTERNAL TOOL CONNECTIONS ---
+FFMPEG --> AUDIO
+WHISPER --> AUDIO
+
+%% --- DevOps & Docs connections ---
+REPO --> README
+REPO --> ARCHFILE
